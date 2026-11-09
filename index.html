@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QuantHealth AI – Multi-Agent Preventive Healthcare</title>
+<style>
+:root{--bg:#f4f7f6;--card:#fff;--ink:#12302f;--mut:#5b7270;--teal:#0f766e;--tl:#d6ece9;--red:#c8344d;--amb:#b7791f;--ok:#2f855a;--ln:#d3dedb}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1f1f;--card:#142b2a;--ink:#e6f2f0;--mut:#9bb5b2;--teal:#4fd1c0;--tl:#1d4340;--red:#ff7a8f;--amb:#f6c453;--ok:#68d391;--ln:#2b4745}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--ln);background:var(--card)}
+h1{font:700 1.35rem Georgia,serif;margin:0}h2{font:700 1.1rem Georgia,serif;margin:0 0 8px}small,.mut{color:var(--mut)}
+nav{display:flex;gap:6px;overflow-x:auto;padding:10px 20px}nav button{border:1px solid var(--ln);background:var(--card);color:var(--ink);padding:8px 14px;border-radius:20px;cursor:pointer;white-space:nowrap;font:inherit}
+nav button[aria-selected=true]{background:var(--teal);color:var(--bg);border-color:var(--teal)}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+main{padding:0 20px 90px;max-width:1100px;margin:auto}section{display:none}section.on{display:block}
+.g{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}.c{background:var(--card);border:1px solid var(--ln);border-radius:10px;padding:16px}
+label{display:block;font-size:.85rem;color:var(--mut)}input[type=number],textarea{width:100%;padding:7px;border:1px solid var(--ln);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+.f{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px}
+.btn{background:var(--teal);color:var(--bg);border:0;border-radius:6px;padding:9px 14px;font:600 .95rem inherit;cursor:pointer}.btn.s{background:var(--tl);color:var(--ink)}
+.big{font:700 3.6rem/1 Georgia,serif}.bar{height:10px;background:var(--tl);border-radius:5px;overflow:hidden}.bar i{display:block;height:100%;background:var(--teal)}
+.row{display:grid;grid-template-columns:120px 1fr 44px;gap:8px;align-items:center;margin:6px 0;font-size:.9rem}
+table{border-collapse:collapse;width:100%;font-size:.9rem}td,th{padding:6px;border-bottom:1px solid var(--ln);text-align:left}
+.hi{color:var(--red);font-weight:700}.lo{color:var(--amb);font-weight:700}.ok{color:var(--ok);font-weight:700}
+#log{max-height:210px;overflow:auto;font-size:.88rem}#log p{margin:4px 0;padding-left:8px;border-left:3px solid var(--teal)}
+svg text{fill:var(--ink);font-size:11px}.node{fill:var(--card);stroke:var(--teal);stroke-width:2;transition:.3s}.node.on{fill:var(--teal)}.node.on+text{fill:var(--bg)}
+.edge{stroke:var(--ln);stroke-width:2}.edge.on{stroke:var(--teal);stroke-width:4}
+pre{background:var(--bg);padding:10px;border-radius:6px;overflow:auto;font-size:.8rem;max-height:260px}
+.warn{background:var(--red);color:#fff;padding:10px;border-radius:6px;margin:6px 0;font-weight:600}
+.step{padding:6px 10px;border-left:4px solid var(--ln);margin:4px 0;opacity:.45}.step.on{border-color:var(--red);opacity:1}
+footer{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--ln);padding:8px 20px;font-size:.78rem;color:var(--mut)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head><body>
+<header><div><h1>QuantHealth AI</h1><small>Six agents, one explainable health picture. Works fully offline.</small></div>
+<div><small>Recovery score</small> <b id="rec" style="font-size:1.4rem"></b></div></header>
+<nav role="tablist" id="tabs"></nav>
+<main>
+<section id="t-overview"><div class="g">
+<div class="c"><h2>Your health inputs</h2><div class="f" id="inp"></div><p><small>Saved on this device only. Nothing is uploaded.</small></p></div>
+<div class="c"><h2>Risk score</h2><div class="big" id="risk"></div><p id="band"></p><h2>Why this score</h2><div id="why"></div></div>
+<div class="c"><h2>Agent mesh</h2><svg id="mesh" viewBox="0 0 300 300" width="100%" role="img" aria-label="Agent collaboration diagram"></svg>
+<button class="btn" id="run">Run agent collaboration</button><div id="log" aria-live="polite"></div></div>
+<div class="c"><h2>Personal care plan</h2><ul id="plan"></ul><h2>Daily coach summary</h2><p id="coach"></p></div>
+</div></section>
+<section id="t-twin"><div class="g">
+<div class="c"><h2>Digital Health Twin: what if?</h2>
+<label>Extra steps per day: <b id="v1">2000</b><input type="range" id="s1" min="0" max="6000" step="500" value="2000" style="width:100%"></label>
+<label>Target sleep (hours): <b id="v2">7.5</b><input type="range" id="s2" min="5" max="9" step="0.5" value="7.5" style="width:100%"></label>
+<label>Weight loss (kg): <b id="v3">2</b><input type="range" id="s3" min="0" max="10" step="1" value="2" style="width:100%"></label>
+<table id="twin"></table><p id="twinTxt"></p></div>
+<div class="c"><h2>Forecast</h2><svg id="fc" viewBox="0 0 320 200" width="100%" role="img" aria-label="Risk forecast chart"></svg><p id="fcTxt" class="mut"></p></div>
+</div></section>
+<section id="t-report"><div class="c"><h2>Medical report analyzer</h2>
+<p class="mut">Paste lab text (for example from a scanned report). Values are checked against standard adult reference ranges.</p>
+<textarea id="rep" rows="6" placeholder="HbA1c 7.2 %&#10;LDL 148 mg/dL"></textarea><p><button class="btn" id="an">Analyze report</button> <button class="btn s" id="smp">Load sample</button></p><div id="repOut"></div></div></section>
+<section id="t-doctor"><div class="g"><div class="c"><h2>Doctor Copilot: 30-second handoff</h2><p id="hand"></p><button class="btn" id="cp">Copy summary</button></div>
+<div class="c"><h2>FHIR R4 observations</h2><pre id="fhir"></pre></div></div></section>
+<section id="t-emerg"><div class="g"><div class="c"><h2>Emergency check</h2><div id="chk"></div><button class="btn" id="ev">Check now</button><div id="evOut"></div></div>
+<div class="c"><h2>Fall response workflow</h2><p class="mut">Simulation. No real alerts are sent.</p><div id="steps"></div><button class="btn" id="fall">Simulate fall</button></div></div></section>
+<section id="t-valid"><div class="c"><h2>Validation metrics</h2><p class="mut">Computed live on 1,000 synthetic profiles with noisy reference labels. This tests the scoring engine, not clinical accuracy.</p><table id="val"></table></div></section>
+<section id="t-voice"><div class="c"><h2>Voice health coach</h2><label>Ask a question<input type="text" id="q" style="width:100%;padding:8px" placeholder="Why is my risk score high?"></label>
+<p><button class="btn" id="ask">Ask</button> <button class="btn s" id="mic">Speak</button></p><p id="ans" aria-live="polite"></p></div></section>
+<section id="t-gem"><div class="g"><div class="c"><h2>Live Gemini AI mode (optional)</h2>
+<p class="mut">The app works fully offline. Turn this on to get a real Gemini response. Only your numbers below are sent (no name or contact details), straight from your browser to Google. Your key stays in this browser tab and is cleared when you close it.</p>
+<label>Gemini API key<input type="password" id="gk" autocomplete="off" style="width:100%;padding:8px" placeholder="Paste key from Google AI Studio"></label>
+<label>Model<input type="text" id="gm" value="gemini-2.5-flash" style="width:100%;padding:8px"></label>
+<label>Question<textarea id="gq" rows="3">Explain my risk score and suggest a 4-week plan.</textarea></label>
+<label><input type="checkbox" id="gr"> Also send the pasted report text from the Reports tab</label>
+<p><button class="btn" id="gs">Ask Gemini</button></p><p><small>For production, route calls through a backend (for example Cloud Run) so the key is never in the browser.</small></p></div>
+<div class="c"><h2>Response</h2><p id="gout" aria-live="polite" style="white-space:pre-wrap">Offline answers stay available on the Voice Coach tab.</p></div></div></section>
+</main>
+<footer>Clinical safety notice: QuantHealth AI gives educational insights and risk awareness only. It is not a diagnosis or treatment. In an emergency call your local emergency number (112 in India, 911 in the US).</footer>
+<script>
+const $=s=>document.querySelector(s),cl=x=>Math.max(0,Math.min(1,x));
+const F=[['age','Age',52],['sys','Systolic BP',138],['dia','Diastolic BP',90],['glu','Glucose mg/dL',126],['wt','Weight kg',82],['ht','Height cm',170],['steps','Steps/day',4200],['sleep','Sleep hours',5.5],['adh','Adherence %',82]];
+let S={};F.forEach(f=>S[f[0]]=f[2]);try{Object.assign(S,JSON.parse(localStorage.getItem('hm')||'{}'))}catch(e){}
+const bmi=p=>p.wt/((p.ht/100)**2);
+const fac=p=>[['Blood pressure',cl((p.sys-120)/50)*25],['Activity',cl((8000-p.steps)/6000)*17],['Sleep',cl(Math.abs(7.5-p.sleep)/3)*17],['Glucose',cl((p.glu-95)/85)*16],['BMI',cl((bmi(p)-22)/12)*13],['Age',cl((p.age-20)/60)*12]];
+const rk=p=>Math.round(fac(p).reduce((a,b)=>a+b[1],0));
+const band=r=>r>=65?['High','hi']:r>=40?['Moderate','lo']:['Low','ok'];
+const top=()=>fac(S).sort((a,b)=>b[1]-a[1]);
+function plan(p,d={}){const q={...p};q.steps+=d.st??2000;q.sleep=d.sl??7.5;q.wt-=d.kg??2;const g=(q.steps-p.steps)/1000;q.sys=Math.max(105,p.sys-g*1.5-(d.kg??2)-Math.max(0,q.sleep-p.sleep));q.glu=Math.max(80,p.glu-g*2-(d.kg??2)*1.2);return q}
+function msgs(){const r=rk(S),t=top()[0][0],em=S.sys>=180||S.glu>=300||S.glu<70;return[
+['Vitals',`BP ${S.sys}/${S.dia} is ${S.sys>=140?'in the stage 2 range':S.sys>=130?'elevated':'in range'}; BMI ${bmi(S).toFixed(1)}.`],
+['Risk',`Risk is ${r}/100. Biggest driver: ${t}.`],
+['Lifestyle',`${S.steps} steps and ${S.sleep} h sleep. Targets: 8,000 steps, 7.5 h.`],
+['Medication',`Adherence ${S.adh}%. ${S.adh<85?'Set reminders for missed doses.':'Keep the routine.'}`],
+['Coach',`Add a 30-minute walk and a fixed bedtime this week.`],
+['Emergency',em?'ALERT: critical reading. Seek medical care.':'No critical threshold crossed.']]}
+function render(){const r=rk(S),b=band(r),f=fac(S),tot=f.reduce((a,x)=>a+x[1],0)||1;
+$('#risk').textContent=r;$('#rec').textContent=100-r+'/100';$('#band').innerHTML=`<span class="${b[1]}">${b[0]} risk</span> <small>(0 best, 100 worst)</small>`;
+$('#why').innerHTML=f.sort((a,b)=>b[1]-a[1]).map(x=>{const p=Math.round(x[1]/tot*100);return`<div class="row"><span>${x[0]}</span><div class="bar"><i style="width:${p}%"></i></div><b>${p}%</b></div>`}).join('');
+const q=plan(S);$('#plan').innerHTML=[`Walk ${Math.min(S.steps+2000,8000)} steps a day (now ${S.steps}).`,`Sleep ${7.5} h; fixed bedtime.`,`BP goal: below ${S.sys>130?130:120}/${S.sys>130?85:80}.`,`Medication adherence goal: 95%.`,`Weekly milestone: risk ${r} to ${Math.max(0,r-3)}.`].map(x=>`<li>${x}</li>`).join('');
+$('#coach').textContent=`Your risk is ${r}/100. Following the plan could lower it to about ${rk(q)} in 30 days. Adherence is ${S.adh}%${S.adh<90?', below the 90% target':''}.`;
+twin();hand();}
+function twin(){const st=+$('#s1').value,sl=+$('#s2').value,kg=+$('#s3').value;$('#v1').textContent=st;$('#v2').textContent=sl;$('#v3').textContent=kg;
+const q=plan(S,{st,sl,kg}),r0=rk(S),r1=rk(q);
+$('#twin').innerHTML=`<tr><th></th><th>Now</th><th>In 30 days</th></tr>`+[['Risk',r0,r1],['Systolic BP',S.sys,Math.round(q.sys)],['Glucose',S.glu,Math.round(q.glu)],['Weight kg',S.wt,q.wt],['Steps/day',S.steps,q.steps]].map(x=>`<tr><td>${x[0]}</td><td>${x[1]}</td><td><b>${x[2]}</b></td></tr>`).join('');
+$('#twinTxt').textContent=`These changes may reduce your risk score by about ${r0-r1} points within 30 days (estimate from a rule-based model).`;
+const pts=[[0,r0],[7,r0-(r0-r1)*7/30],[30,r1]],base=[[0,r0],[30,Math.min(100,r0+2)]];
+const X=d=>30+d*9.5,Y=v=>180-v*1.6,L=a=>a.map(p=>X(p[0])+','+Y(p[1])).join(' ');
+$('#fc').innerHTML=`<line x1="30" y1="180" x2="315" y2="180" class="edge"/><polyline fill="none" stroke="var(--mut)" stroke-dasharray="4" stroke-width="2" points="${L(base)}"/><polyline fill="none" stroke="var(--teal)" stroke-width="3" points="${L(pts)}"/>`+pts.map(p=>`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="4" fill="var(--teal)"/><text x="${X(p[0])-8}" y="${Y(p[1])-9}">${Math.round(p[1])}</text>`).join('')+`<text x="30" y="196">Today</text><text x="110" y="196">Day 7</text><text x="285" y="196">Day 30</text>`;
+$('#fcTxt').textContent=`Solid line: with plan (${Math.round(pts[1][1])} at day 7, ${r1} at day 30). Dashed: no change.`}
+function hand(){const r=rk(S),t=top().slice(0,2).map(x=>x[0]).join(' and ');
+const txt=`Patient ${S.age}y, BMI ${bmi(S).toFixed(1)}. BP ${S.sys}/${S.dia}, glucose ${S.glu} mg/dL. Risk ${r}/100 (${band(r)[0]}), driven by ${t}. Adherence ${S.adh}%. Suggested: lifestyle intervention, review BP and glucose in 4 weeks.`;
+$('#hand').textContent=txt;
+const o=(code,name,val,unit)=>({resourceType:'Observation',status:'final',code:{coding:[{system:'http://loinc.org',code,display:name}]},valueQuantity:{value:val,unit}});
+const bp={resourceType:'Observation',status:'final',code:{coding:[{system:'http://loinc.org',code:'85354-9',display:'Blood pressure panel'}]},component:[{code:{coding:[{system:'http://loinc.org',code:'8480-6'}]},valueQuantity:{value:S.sys,unit:'mmHg'}},{code:{coding:[{system:'http://loinc.org',code:'8462-4'}]},valueQuantity:{value:S.dia,unit:'mmHg'}}]};
+$('#fhir').textContent=JSON.stringify({resourceType:'Bundle',type:'collection',entry:[bp,o('2339-0','Glucose',S.glu,'mg/dL'),o('29463-7','Body weight',S.wt,'kg')].map(resource=>({resource}))},null,1)}
+// inputs
+$('#inp').innerHTML=F.map(f=>`<label>${f[1]}<input type="number" step="any" id="i-${f[0]}" value="${S[f[0]]}"></label>`).join('');
+F.forEach(f=>$('#i-'+f[0]).oninput=e=>{const v=parseFloat(e.target.value);if(!isNaN(v)){S[f[0]]=v;try{localStorage.setItem('hm',JSON.stringify(S))}catch(x){}render()}});
+// tabs
+const T=[['overview','Overview'],['twin','Health Twin'],['report','Reports'],['doctor','Doctor Copilot'],['emerg','Emergency'],['valid','Validation'],['voice','Voice Coach'],['gem','Gemini AI']];
+$('#tabs').innerHTML=T.map((t,i)=>`<button role="tab" data-t="${t[0]}" aria-selected="${!i}">${t[1]}</button>`).join('');
+function go(k){document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id=='t-'+k));document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t==k))}
+$('#tabs').onclick=e=>e.target.dataset.t&&go(e.target.dataset.t);go('overview');
+['s1','s2','s3'].forEach(i=>$('#'+i).oninput=twin);
+// mesh
+const names=['Vitals','Risk','Lifestyle','Medication','Coach','Emergency'];
+$('#mesh').innerHTML=names.map((n,i)=>{const a=i*Math.PI/3-Math.PI/2,x=150+105*Math.cos(a),y=150+105*Math.sin(a);return`<line class="edge" id="e${i}" x1="150" y1="150" x2="${x}" y2="${y}"/><circle class="node" id="n${i}" cx="${x}" cy="${y}" r="27"/><text x="${x}" y="${y+4}" text-anchor="middle">${n}</text>`}).join('')+`<circle cx="150" cy="150" r="24" fill="var(--teal)"/><text x="150" y="154" text-anchor="middle" style="fill:var(--bg)">Care plan</text>`;
+$('#run').onclick=()=>{$('#log').innerHTML='';const m=msgs();document.querySelectorAll('.node,.edge').forEach(e=>e.classList.remove('on'));
+m.forEach((x,i)=>setTimeout(()=>{$('#n'+i).classList.add('on');$('#e'+i).classList.add('on');$('#log').insertAdjacentHTML('beforeend',`<p><b>${x[0]} agent:</b> ${x[1]}</p>`);$('#log').scrollTop=1e4},i*700));
+setTimeout(()=>$('#log').insertAdjacentHTML('beforeend',`<p><b>Care Plan agent:</b> weekly goals updated.</p>`),m.length*700)};
+// report
+const R=[['hba1c','HbA1c','%',5.7,0,'Repeat glucose checks more often and review diet with your doctor.'],['ldl','LDL','mg/dL',130,0,'Reduce saturated fat; discuss lipid management.'],['total cholesterol','Total cholesterol','mg/dL',200,0,'Increase fibre and activity.'],['glucose','Fasting glucose','mg/dL',100,70,'Track fasting glucose weekly.'],['hemoglobin','Hemoglobin','g/dL',17.5,12,'Ask about iron and B12 levels.'],['creatinine','Creatinine','mg/dL',1.3,0.6,'Stay hydrated and review kidney function.'],['tsh','TSH','mIU/L',4.5,0.4,'Discuss thyroid follow-up.']];
+$('#smp').onclick=()=>$('#rep').value='HbA1c 7.2 %\nLDL 148 mg/dL\nTotal cholesterol 212 mg/dL\nFasting glucose 131 mg/dL\nHemoglobin 13.4 g/dL';
+$('#an').onclick=()=>{const t=$('#rep').value.toLowerCase();const rows=R.map(r=>{const m=t.match(new RegExp(r[0].replace(' ','\\s')+'[^\\d]{0,15}(\\d+(?:\\.\\d+)?)'));if(!m)return'';const v=+m[1],s=v>r[3]?['High','hi']:v<r[4]?['Low','lo']:['Normal','ok'];return`<tr><td>${r[1]}</td><td>${v} ${r[2]}</td><td class="${s[1]}">${s[0]}</td><td>${s[0]=='Normal'?'-':r[5]}</td></tr>`}).join('');
+$('#repOut').innerHTML=rows?`<table><tr><th>Test</th><th>Value</th><th>Status</th><th>Suggestion</th></tr>${rows}</table><p><small>Discuss abnormal values with a clinician.</small></p>`:'<p class="mut">No known tests found. Use lines like "HbA1c 7.2".</p>'};
+$('#cp').onclick=()=>{try{navigator.clipboard.writeText($('#hand').textContent);$('#cp').textContent='Copied'}catch(e){}};
+// emergency
+const C=[['face','Face drooping'],['arm','Arm or leg weakness'],['speech','Slurred speech'],['cp','Chest pressure or pain'],['jaw','Pain in arm, jaw or back'],['sweat','Cold sweat or breathlessness'],['conf','Confusion or shakiness'],['thirst','Extreme thirst or fruity breath']];
+$('#chk').innerHTML=C.map(c=>`<label><input type="checkbox" id="c-${c[0]}"> ${c[1]}</label>`).join('');
+$('#ev').onclick=()=>{const k=i=>$('#c-'+i).checked,o=[];
+if(k('face')||k('arm')||k('speech'))o.push('Possible stroke warning: call emergency services now and note the time symptoms began.');
+if(k('cp')&&(k('jaw')||k('sweat'))||(k('jaw')&&k('sweat')))o.push('Possible heart attack warning: call emergency services now. Stay still.');
+if(S.glu<70||S.glu>300||(k('conf')&&k('thirst')))o.push('Possible diabetic emergency: check glucose and get urgent medical help.');
+$('#evOut').innerHTML=o.length?o.map(x=>`<div class="warn">${x}</div>`).join(''):'<p class="ok">No emergency pattern detected. Seek care if symptoms continue.</p>'};
+const W=['Fall detected','Emergency agent confirms','Risk agent checks vitals','Caregiver notified (simulated)','Hospital alert drafted (simulated)','Location shared (simulated)'];
+$('#steps').innerHTML=W.map((w,i)=>`<div class="step" id="w${i}">${w}</div>`).join('');
+$('#fall').onclick=()=>{document.querySelectorAll('.step').forEach(s=>s.classList.remove('on'));W.forEach((w,i)=>setTimeout(()=>$('#w'+i).classList.add('on'),i*600))};
+// validation
+function val(){let s=7;const rnd=()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296},g=()=>(rnd()+rnd()+rnd()-1.5)*2*8/1.2;
+const D=[];for(let i=0;i<1000;i++){const p={age:20+rnd()*60,sys:105+rnd()*70,glu:80+rnd()*140,wt:50+rnd()*70,ht:150+rnd()*35,steps:rnd()*12000,sleep:4+rnd()*5.5};const sc=rk(p);D.push([sc,sc+g()>45])}
+let tp=0,fp=0,tn=0,fn=0;D.forEach(d=>{const pr=d[0]>=45;if(pr&&d[1])tp++;else if(pr)fp++;else if(d[1])fn++;else tn++});
+const P=D.filter(d=>d[1]),N=D.filter(d=>!d[1]);let a=0;P.forEach(p=>N.forEach(n=>a+=p[0]>n[0]?1:p[0]==n[0]?.5:0));
+const pr=tp/(tp+fp),rc=tp/(tp+fn);return[['Accuracy',(tp+tn)/1000],['Precision',pr],['Recall',rc],['F1 score',2*pr*rc/(pr+rc)],['AUC',a/(P.length*N.length)]]}
+$('#val').innerHTML=val().map(m=>`<tr><td>${m[0]}</td><td><b>${m[1].toFixed(2)}</b></td></tr>`).join('');
+// voice
+function answer(q){q=q.toLowerCase();const t=top().slice(0,3).map(x=>x[0].toLowerCase()).join(', ');
+if(/why|risk|score/.test(q))return`Your risk is ${rk(S)} out of 100. The biggest contributors are ${t}.`;
+if(/walk|step|exercise|activity/.test(q))return`Aim for about ${Math.min(S.steps+2000,8000)} steps a day. That could lower your risk by ${rk(S)-rk(plan(S))} points.`;
+if(/sleep/.test(q))return`You sleep ${S.sleep} hours. Aim for 7 to 8 with a fixed bedtime.`;
+if(/medic|pill|dose/.test(q))return`Your adherence is ${S.adh} percent. Reminders can help you reach 95.`;
+if(/bp|pressure/.test(q))return`Your blood pressure is ${S.sys} over ${S.dia}. Reduce salt, walk daily, and recheck weekly.`;
+return'Ask about your risk, steps, sleep, medication or blood pressure.'}
+function say(t){$('#ans').textContent=t;try{speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(t))}catch(e){}}
+$('#ask').onclick=()=>say(answer($('#q').value));
+$('#mic').onclick=()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){$('#ans').textContent='Voice input is not supported in this browser. Type your question instead.';return}
+const r=new SR();r.onresult=e=>{$('#q').value=e.results[0][0].transcript;say(answer($('#q').value))};r.start()};
+
+// Gemini live mode (opt-in)
+try{$('#gk').value=sessionStorage.getItem('gk')||''}catch(e){}
+$('#gs').onclick=async()=>{const key=$('#gk').value.trim(),o=$('#gout');
+if(!key){o.textContent='Add a Gemini API key to use live mode. Offline answer: '+answer($('#gq').value);return}
+try{sessionStorage.setItem('gk',key)}catch(e){}
+const ctx=`Anonymous profile: age ${S.age}, BP ${S.sys}/${S.dia}, glucose ${S.glu} mg/dL, BMI ${bmi(S).toFixed(1)}, steps ${S.steps}/day, sleep ${S.sleep} h, medication adherence ${S.adh}%. Rule-engine risk ${rk(S)}/100; factor shares: ${fac(S).map(x=>x[0]+' '+Math.round(x[1])).join(', ')}.`+($('#gr').checked&&$('#rep').value?`\nLab report text:\n${$('#rep').value}`:'');
+const body={systemInstruction:{parts:[{text:'You are a preventive health education assistant. Give clear, plain-language, non-diagnostic guidance. Always advise seeing a clinician for medical decisions and emergency services for emergencies. Keep answers under 200 words.'}]},contents:[{parts:[{text:ctx+'\n\nQuestion: '+$('#gq').value}]}]};
+o.textContent='Asking Gemini...';
+try{const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent($('#gm').value.trim())+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify(body)});
+const j=await r.json();if(!r.ok)throw new Error(j.error&&j.error.message||r.status);
+const t=j.candidates&&j.candidates[0]&&j.candidates[0].content.parts.map(p=>p.text).join('');
+o.textContent=(t||'Gemini returned no text.')+'\n\nAI-generated, for information only. Not medical advice.'}
+catch(e){o.textContent='Gemini request failed: '+e.message+'\n\nOffline answer: '+answer($('#gq').value)}};
+render();
+</script></body></html>
